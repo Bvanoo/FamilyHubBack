@@ -1,0 +1,6 @@
+@FamHubBack_HostAddress = http://localhost:5159
+
+GET {{FamHubBack_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
