@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace FamHubBack.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialFinalFix : Migration
+    public partial class RenameSendTableToMessages : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
