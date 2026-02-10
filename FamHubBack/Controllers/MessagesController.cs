@@ -8,14 +8,8 @@ namespace FamHubBack.Controllers
     [ApiController]
     public class MessagesController : ControllerBase
     {
-        private readonly ApplicationDbContext _db;
-        public MessagesController(ApplicationDbContext context)
-        {
-            _db = context;
-        }
-
         [HttpGet("{conversationId}")]
-        public async Task<IActionResult> GetHistory(int conversationId)
+        public async Task<IActionResult> GetHistory(int conversationId, ApplicationDbContext _db)
         {
             var messages = await _db.Messages
                 .Where(m => m.ConversationId == conversationId)

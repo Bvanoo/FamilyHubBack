@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FamHubBack.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260130134807_InitialFinalFix")]
-    partial class InitialFinalFix
+    [Migration("20260204085123_RenameSendTableToMessages")]
+    partial class RenameSendTableToMessages
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

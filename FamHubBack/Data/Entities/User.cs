@@ -11,6 +11,7 @@ namespace FamHubBack.Data.Entities
 
         [Required, MaxLength(255)]
         public string Email { get; set; } = null!;
+        public string Name { get; set; } = null!;
 
         [Required]
         public string PasswordHash { get; set; } = null!;

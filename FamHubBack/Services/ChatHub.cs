@@ -22,8 +22,6 @@ public class ChatHub : Hub
 
         db.Messages.Add(msg);
         await db.SaveChangesAsync();
-
-        // On envoie des types simples (int, string, DateTime) pour éviter les erreurs JSON
         await Clients.Group($"conv_{conversationId}")
                      .SendAsync("ReceiveMessage", senderId, content, msg.CreatedAt);
     }
