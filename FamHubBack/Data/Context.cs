@@ -18,6 +18,7 @@ namespace FamHubBack.Data
         public DbSet<Tricount> Tricounts => Set<Tricount>();
         public DbSet<Expense> Expenses => Set<Expense>();
         public DbSet<ExpenseParticipant> ExpenseParticipants => Set<ExpenseParticipant>();
+        public DbSet<CalendarEvent> CalendarEvents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
