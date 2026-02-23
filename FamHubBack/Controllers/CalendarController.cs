@@ -55,6 +55,7 @@ namespace FamHubBack.Controllers
                 return StatusCode(500, new { message = "Erreur SQL", error = ex.Message, inner = ex.InnerException?.Message });
             }
         }
+
         [HttpGet("unified")]
         public async Task<IActionResult> GetUnifiedCalendar()
         {
@@ -69,26 +70,40 @@ namespace FamHubBack.Controllers
                 .Select(gm => gm.GroupId)
                 .ToListAsync();
 
-            var events = await _context.CalendarEvents
-                .Include(e => e.Group)
-                .Where(e =>
-                    e.UserId == currentUserId ||
-                    (e.GroupId.HasValue && myGroupsIds.Contains(e.GroupId.Value))
-                )
+            var sharedUsersIds = await _context.GroupMembers
+                .Where(gm => myGroupsIds.Contains(gm.GroupId) && gm.Status == MemberStatus.Accepted)
+                .Select(gm => gm.UserId)
+                .Distinct()
                 .ToListAsync();
 
-            var eventDtos = events.Select(e => new EventDto
+            var events = await _context.CalendarEvents
+        .Include(e => e.User)
+        .Where(e =>
+            e.UserId == currentUserId ||
+            (e.GroupId.HasValue && myGroupsIds.Contains(e.GroupId.Value)) ||
+            (!e.GroupId.HasValue && sharedUsersIds.Contains(e.UserId) && e.IsPrivateEvent)
+        )
+        .ToListAsync();
+
+            var eventDtos = events.Select(e =>
             {
-                Id = e.Id,
-                Start = e.Start,
-                End = e.End,
-                Title = (e.UserId != currentUserId && e.MaskDetails) ? "Indisponible" : e.Title,
-                Description = (e.UserId != currentUserId && e.MaskDetails) ? "" : e.Description,
-                IsPrivate = e.IsPrivateEvent,
-                GroupId = e.GroupId,
-                UserId = e.UserId,
-                Color = e.GroupId.HasValue ? "#3788d8" : e.Color,
-                Type = e.Type
+                bool isHiddenFromMe = e.UserId != currentUserId && (e.IsPrivateEvent || e.MaskDetails);
+
+                return new EventDto
+                {
+                    Id = e.Id,
+                    Start = e.Start,
+                    End = e.End,
+                    Title = isHiddenFromMe ? "Indisponible" : e.Title,
+                    Description = isHiddenFromMe ? "" : e.Description,
+                    Type = isHiddenFromMe ? "Indisponible" : e.Type!,
+                    IsPrivate = e.IsPrivateEvent,
+                    GroupId = e.GroupId,
+                    UserId = e.UserId,
+                    Color = isHiddenFromMe ? "#9ca3af" : (e.GroupId.HasValue ? "#3b82f6" : e.Color)!,
+                    UserName = e.User?.Name ?? "Utilisateur",
+                    UserPicture = e.User?.ProfilePictureUrl
+                };
             });
 
             return Ok(eventDtos);
@@ -123,5 +138,29 @@ namespace FamHubBack.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+        [HttpGet("group/{groupId}")]
+        public async Task<IActionResult> GetGroupEvents(int groupId)
+        {
+            var events = await _context.CalendarEvents
+                .Where(e => e.GroupId == groupId)
+                .ToListAsync();
+
+            var eventDtos = events.Select(e => new EventDto
+            {
+                Id = e.Id,
+                Start = e.Start,
+                End = e.End,
+                Title = e.Title,
+                Description = e.Description,
+                IsPrivate = e.IsPrivateEvent,
+                GroupId = e.GroupId,
+                UserId = e.UserId,
+                Color = e.Color,
+                Type = e.Type
+            });
+
+            return Ok(eventDtos);
+        }
     }
+
 }

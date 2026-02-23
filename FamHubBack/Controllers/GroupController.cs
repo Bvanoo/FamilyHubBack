@@ -176,7 +176,7 @@ namespace FamHubBack.Controllers
 
             var members = await _context.GroupMembers
                 .Include(m => m.User)
-                .Where(m => m.GroupId == groupId && m.IsAccepted)
+                .Where(m => m.GroupId == groupId && (m.IsAccepted || m.Status == MemberStatus.Accepted))
                 .Select(m => new {
                     UserId = m.UserId,
                     Name = m.User.Name,
@@ -229,7 +229,79 @@ namespace FamHubBack.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = "Droits transférés avec succès." });
         }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetGroup(int id)
+        {
+            var group = await _context.Groups
+                .Where(g => g.Id == id && !g.IsDeleted)
+                .Select(g => new { g.Id, g.Name, g.Description, g.OwnerId })
+                .FirstOrDefaultAsync();
+
+            if (group == null) return NotFound("Groupe introuvable.");
+            return Ok(group);
+        }
+
+        [HttpGet("{groupId}/search-users")]
+        public async Task<IActionResult> SearchUsersNotInGroup(int groupId, [FromQuery] string query = "")
+        {
+            var existingMemberIds = await _context.GroupMembers
+                .Where(gm => gm.GroupId == groupId)
+                .Select(gm => gm.UserId)
+                .ToListAsync();
+
+            var usersQuery = _context.Users.Where(u => !existingMemberIds.Contains(u.Id));
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var queryLower = query.ToLower();
+                usersQuery = usersQuery.Where(u => u.Name.ToLower().Contains(queryLower) || u.Email.ToLower().Contains(queryLower));
+            }
+
+            var users = await usersQuery
+                .Select(u => new { u.Id, u.Name, u.Email, u.ProfilePictureUrl })
+                .Take(10)
+                .ToListAsync();
+
+            return Ok(users);
+        }
+
+        [HttpPost("{groupId}/invite/{userId}")]
+        public async Task<IActionResult> InviteUser(int groupId, int userId)
+        {
+            var exists = await _context.GroupMembers.AnyAsync(gm => gm.GroupId == groupId && gm.UserId == userId);
+            if (exists) return BadRequest(new { message = "Cet utilisateur est déjà dans le groupe." });
+
+            var newMember = new GroupMember
+            {
+                GroupId = groupId,
+                UserId = userId,
+                Role = "Member",
+                Status = MemberStatus.Accepted,
+                IsAccepted = true
+            };
+
+            _context.GroupMembers.Add(newMember);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Utilisateur ajouté avec succès !" });
+        }
+        [HttpDelete("{groupId}/members/{userId}")]
+        public async Task<IActionResult> RemoveMember(int groupId, int userId)
+        {
+            var memberToRemove = await _context.GroupMembers
+                .FirstOrDefaultAsync(gm => gm.GroupId == groupId && gm.UserId == userId);
+
+            if (memberToRemove == null)
+                return NotFound(new { message = "Membre introuvable dans ce groupe." });
+
+            _context.GroupMembers.Remove(memberToRemove);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Membre retiré du groupe avec succès." });
+        }
     }
+
 
     public class CreateGroupDto { public string Name { get; set; } = null!; public string? Description { get; set; } }
 }
