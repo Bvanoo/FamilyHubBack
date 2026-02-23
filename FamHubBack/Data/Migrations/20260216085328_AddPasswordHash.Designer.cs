@@ -4,6 +4,7 @@ using FamHubBack.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FamHubBack.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260216085328_AddPasswordHash")]
+    partial class AddPasswordHash
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -305,13 +308,6 @@ namespace FamHubBack.Data.Migrations
                     b.Property<string>("IconUrl")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("InviteCode")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsPublic")
                         .HasColumnType("bit");
 
@@ -339,9 +335,6 @@ namespace FamHubBack.Data.Migrations
 
                     b.Property<int>("GroupId")
                         .HasColumnType("int");
-
-                    b.Property<bool>("IsAccepted")
-                        .HasColumnType("bit");
 
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("datetime2");
@@ -383,7 +376,7 @@ namespace FamHubBack.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("ConversationId")
+                    b.Property<int>("ConversationId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -510,9 +503,6 @@ namespace FamHubBack.Data.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
-
-                    b.Property<string>("ProfilePictureUrl")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
@@ -878,9 +868,10 @@ namespace FamHubBack.Data.Migrations
                     b.HasOne("FamHubBack.Data.Entities.Conversation", "Conversation")
                         .WithMany("Messages")
                         .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
-                    b.HasOne("FamHubBack.Data.Entities.Group", "Group")
+                    b.HasOne("FamHubBack.Data.Entities.Group", null)
                         .WithMany("Messages")
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -892,8 +883,6 @@ namespace FamHubBack.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Conversation");
-
-                    b.Navigation("Group");
 
                     b.Navigation("Sender");
                 });

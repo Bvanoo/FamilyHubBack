@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FamHubBack.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260209133735_InitialCalendarMigration")]
-    partial class InitialCalendarMigration
+    [Migration("20260213092317_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -36,8 +36,20 @@ namespace FamHubBack.Data.Migrations
                     b.Property<string>("Color")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("End")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("GroupId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsPrivateEvent")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("MaskDetails")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("Start")
                         .HasColumnType("datetime2");
@@ -53,6 +65,8 @@ namespace FamHubBack.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
 
                     b.HasIndex("UserId");
 
@@ -106,6 +120,113 @@ namespace FamHubBack.Data.Migrations
                     b.ToTable("Participate");
                 });
 
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CalendarEventId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("PostedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CalendarEventId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EventComments");
+                });
+
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventParticipant", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CalendarEventId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CalendarEventId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EventParticipants");
+                });
+
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventPoll", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CalendarEventId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CalendarEventId");
+
+                    b.ToTable("EventPolls");
+                });
+
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AssignedUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CalendarEventId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDone")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CalendarEventId");
+
+                    b.ToTable("EventTasks");
+                });
+
             modelBuilder.Entity("FamHubBack.Data.Entities.Expense", b =>
                 {
                     b.Property<int>("Id")
@@ -117,25 +238,27 @@ namespace FamHubBack.Data.Migrations
                     b.Property<decimal>("AmountTotal")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("CalendarEventId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("ExpenseDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("PaidBy")
                         .HasColumnType("int");
 
-                    b.Property<int>("PayerId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TricountId")
+                    b.Property<int?>("TricountId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PayerId");
+                    b.HasIndex("CalendarEventId");
+
+                    b.HasIndex("PaidBy");
 
                     b.HasIndex("TricountId");
 
@@ -179,9 +302,14 @@ namespace FamHubBack.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("IconUrl")
-                        .IsRequired()
+                    b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IconUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -215,6 +343,15 @@ namespace FamHubBack.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("ShowDetails")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("SyncCalendar")
+                        .HasColumnType("bit");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -245,6 +382,9 @@ namespace FamHubBack.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("GroupId")
+                        .HasColumnType("int");
+
                     b.Property<int>("SenderId")
                         .HasColumnType("int");
 
@@ -252,9 +392,36 @@ namespace FamHubBack.Data.Migrations
 
                     b.HasIndex("ConversationId");
 
+                    b.HasIndex("GroupId");
+
                     b.HasIndex("SenderId");
 
                     b.ToTable("Send");
+                });
+
+            modelBuilder.Entity("FamHubBack.Data.Entities.PollOption", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("EventPollId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VoteCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventPollId");
+
+                    b.ToTable("PollOptions");
                 });
 
             modelBuilder.Entity("FamHubBack.Data.Entities.Tricount", b =>
@@ -300,6 +467,10 @@ namespace FamHubBack.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -348,11 +519,18 @@ namespace FamHubBack.Data.Migrations
 
             modelBuilder.Entity("FamHubBack.Data.Entities.CalendarEvent", b =>
                 {
+                    b.HasOne("FamHubBack.Data.Entities.Group", "Group")
+                        .WithMany("Events")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("FamHubBack.Data.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Group");
 
                     b.Navigation("User");
                 });
@@ -376,19 +554,81 @@ namespace FamHubBack.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventComment", b =>
+                {
+                    b.HasOne("FamHubBack.Data.Entities.CalendarEvent", null)
+                        .WithMany("Comments")
+                        .HasForeignKey("CalendarEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FamHubBack.Data.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventParticipant", b =>
+                {
+                    b.HasOne("FamHubBack.Data.Entities.CalendarEvent", "CalendarEvent")
+                        .WithMany("Participants")
+                        .HasForeignKey("CalendarEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FamHubBack.Data.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CalendarEvent");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventPoll", b =>
+                {
+                    b.HasOne("FamHubBack.Data.Entities.CalendarEvent", null)
+                        .WithMany("Polls")
+                        .HasForeignKey("CalendarEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventTask", b =>
+                {
+                    b.HasOne("FamHubBack.Data.Entities.CalendarEvent", "CalendarEvent")
+                        .WithMany("Tasks")
+                        .HasForeignKey("CalendarEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CalendarEvent");
+                });
+
             modelBuilder.Entity("FamHubBack.Data.Entities.Expense", b =>
                 {
+                    b.HasOne("FamHubBack.Data.Entities.CalendarEvent", "CalendarEvent")
+                        .WithMany("Expenses")
+                        .HasForeignKey("CalendarEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("FamHubBack.Data.Entities.User", "Payer")
                         .WithMany("ExpensesPaid")
-                        .HasForeignKey("PayerId")
+                        .HasForeignKey("PaidBy")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("FamHubBack.Data.Entities.Tricount", "Tricount")
                         .WithMany()
                         .HasForeignKey("TricountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CalendarEvent");
 
                     b.Navigation("Payer");
 
@@ -452,6 +692,11 @@ namespace FamHubBack.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("FamHubBack.Data.Entities.Group", null)
+                        .WithMany("Messages")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("FamHubBack.Data.Entities.User", "Sender")
                         .WithMany("Messages")
                         .HasForeignKey("SenderId")
@@ -461,6 +706,15 @@ namespace FamHubBack.Data.Migrations
                     b.Navigation("Conversation");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("FamHubBack.Data.Entities.PollOption", b =>
+                {
+                    b.HasOne("FamHubBack.Data.Entities.EventPoll", null)
+                        .WithMany("Options")
+                        .HasForeignKey("EventPollId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("FamHubBack.Data.Entities.Tricount", b =>
@@ -485,6 +739,19 @@ namespace FamHubBack.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("FamHubBack.Data.Entities.CalendarEvent", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Expenses");
+
+                    b.Navigation("Participants");
+
+                    b.Navigation("Polls");
+
+                    b.Navigation("Tasks");
+                });
+
             modelBuilder.Entity("FamHubBack.Data.Entities.Conversation", b =>
                 {
                     b.Navigation("Members");
@@ -492,9 +759,18 @@ namespace FamHubBack.Data.Migrations
                     b.Navigation("Messages");
                 });
 
+            modelBuilder.Entity("FamHubBack.Data.Entities.EventPoll", b =>
+                {
+                    b.Navigation("Options");
+                });
+
             modelBuilder.Entity("FamHubBack.Data.Entities.Group", b =>
                 {
+                    b.Navigation("Events");
+
                     b.Navigation("Members");
+
+                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("FamHubBack.Data.Entities.User", b =>

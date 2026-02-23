@@ -15,9 +15,11 @@ namespace FamHubBack.Data.Entities
         public int SenderId { get; set; }
         [ForeignKey("SenderId")]
         public User Sender { get; set; } = null!;
-
-        public int ConversationId { get; set; }
+        public int? GroupId { get; set; }
+        [ForeignKey("GroupId")]
+        public Group? Group { get; set; }
+        public int? ConversationId { get; set; }
         [ForeignKey("ConversationId")]
-        public Conversation Conversation { get; set; } = null!;
+        public Conversation? Conversation { get; set; }
     }
 }

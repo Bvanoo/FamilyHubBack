@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace FamHubBack.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class RenameSendTableToMessages : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -33,6 +33,7 @@ namespace FamHubBack.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
@@ -49,7 +50,9 @@ namespace FamHubBack.Data.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    IconUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IconUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsPublic = table.Column<bool>(type: "bit", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     OwnerId = table.Column<int>(type: "int", nullable: false)
                 },
@@ -113,34 +116,6 @@ namespace FamHubBack.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Send",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SenderId = table.Column<int>(type: "int", nullable: false),
-                    ConversationId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Send", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Send_Users_SenderId",
-                        column: x => x.SenderId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Send_conversations_ConversationId",
-                        column: x => x.ConversationId,
-                        principalTable: "conversations",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Tricounts",
                 columns: table => new
                 {
@@ -163,13 +138,50 @@ namespace FamHubBack.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CalendarEvents",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Color = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Start = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    End = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsPrivateEvent = table.Column<bool>(type: "bit", nullable: false),
+                    MaskDetails = table.Column<bool>(type: "bit", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    GroupId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CalendarEvents", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CalendarEvents_Groups_GroupId",
+                        column: x => x.GroupId,
+                        principalTable: "Groups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CalendarEvents_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "GroupMembers",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Role = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
                     JoinedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SyncCalendar = table.Column<bool>(type: "bit", nullable: false),
+                    ShowDetails = table.Column<bool>(type: "bit", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     GroupId = table.Column<int>(type: "int", nullable: false)
                 },
@@ -191,6 +203,138 @@ namespace FamHubBack.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Send",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    SenderId = table.Column<int>(type: "int", nullable: false),
+                    ConversationId = table.Column<int>(type: "int", nullable: false),
+                    GroupId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Send", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Send_Groups_GroupId",
+                        column: x => x.GroupId,
+                        principalTable: "Groups",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Send_Users_SenderId",
+                        column: x => x.SenderId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Send_conversations_ConversationId",
+                        column: x => x.ConversationId,
+                        principalTable: "conversations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EventComments",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PostedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    CalendarEventId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EventComments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EventComments_CalendarEvents_CalendarEventId",
+                        column: x => x.CalendarEventId,
+                        principalTable: "CalendarEvents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_EventComments_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EventParticipants",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CalendarEventId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EventParticipants", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EventParticipants_CalendarEvents_CalendarEventId",
+                        column: x => x.CalendarEventId,
+                        principalTable: "CalendarEvents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_EventParticipants_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EventPolls",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Question = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CalendarEventId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EventPolls", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EventPolls_CalendarEvents_CalendarEventId",
+                        column: x => x.CalendarEventId,
+                        principalTable: "CalendarEvents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "EventTasks",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsDone = table.Column<bool>(type: "bit", nullable: false),
+                    AssignedUserId = table.Column<int>(type: "int", nullable: true),
+                    CalendarEventId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_EventTasks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_EventTasks_CalendarEvents_CalendarEventId",
+                        column: x => x.CalendarEventId,
+                        principalTable: "CalendarEvents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Expenses",
                 columns: table => new
                 {
@@ -200,12 +344,18 @@ namespace FamHubBack.Data.Migrations
                     AmountTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ExpenseDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     PaidBy = table.Column<int>(type: "int", nullable: false),
-                    TricountId = table.Column<int>(type: "int", nullable: false),
-                    PayerId = table.Column<int>(type: "int", nullable: false)
+                    TricountId = table.Column<int>(type: "int", nullable: true),
+                    CalendarEventId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Expenses", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Expenses_CalendarEvents_CalendarEventId",
+                        column: x => x.CalendarEventId,
+                        principalTable: "CalendarEvents",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Expenses_Tricounts_TricountId",
                         column: x => x.TricountId,
@@ -213,9 +363,30 @@ namespace FamHubBack.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Expenses_Users_PayerId",
-                        column: x => x.PayerId,
+                        name: "FK_Expenses_Users_PaidBy",
+                        column: x => x.PaidBy,
                         principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PollOptions",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    VoteCount = table.Column<int>(type: "int", nullable: false),
+                    EventPollId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PollOptions", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PollOptions_EventPolls_EventPollId",
+                        column: x => x.EventPollId,
+                        principalTable: "EventPolls",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -248,6 +419,46 @@ namespace FamHubBack.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_CalendarEvents_GroupId",
+                table: "CalendarEvents",
+                column: "GroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CalendarEvents_UserId",
+                table: "CalendarEvents",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EventComments_CalendarEventId",
+                table: "EventComments",
+                column: "CalendarEventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EventComments_UserId",
+                table: "EventComments",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EventParticipants_CalendarEventId",
+                table: "EventParticipants",
+                column: "CalendarEventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EventParticipants_UserId",
+                table: "EventParticipants",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EventPolls_CalendarEventId",
+                table: "EventPolls",
+                column: "CalendarEventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EventTasks_CalendarEventId",
+                table: "EventTasks",
+                column: "CalendarEventId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ExpenseParticipants_ExpenseId",
                 table: "ExpenseParticipants",
                 column: "ExpenseId");
@@ -258,9 +469,14 @@ namespace FamHubBack.Data.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Expenses_PayerId",
+                name: "IX_Expenses_CalendarEventId",
                 table: "Expenses",
-                column: "PayerId");
+                column: "CalendarEventId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Expenses_PaidBy",
+                table: "Expenses",
+                column: "PaidBy");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Expenses_TricountId",
@@ -293,9 +509,19 @@ namespace FamHubBack.Data.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PollOptions_EventPollId",
+                table: "PollOptions",
+                column: "EventPollId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Send_ConversationId",
                 table: "Send",
                 column: "ConversationId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Send_GroupId",
+                table: "Send",
+                column: "GroupId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Send_SenderId",
@@ -312,6 +538,15 @@ namespace FamHubBack.Data.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "EventComments");
+
+            migrationBuilder.DropTable(
+                name: "EventParticipants");
+
+            migrationBuilder.DropTable(
+                name: "EventTasks");
+
+            migrationBuilder.DropTable(
                 name: "ExpenseParticipants");
 
             migrationBuilder.DropTable(
@@ -319,6 +554,9 @@ namespace FamHubBack.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "Participate");
+
+            migrationBuilder.DropTable(
+                name: "PollOptions");
 
             migrationBuilder.DropTable(
                 name: "Profiles");
@@ -330,13 +568,19 @@ namespace FamHubBack.Data.Migrations
                 name: "Expenses");
 
             migrationBuilder.DropTable(
-                name: "Groups");
+                name: "EventPolls");
 
             migrationBuilder.DropTable(
                 name: "conversations");
 
             migrationBuilder.DropTable(
                 name: "Tricounts");
+
+            migrationBuilder.DropTable(
+                name: "CalendarEvents");
+
+            migrationBuilder.DropTable(
+                name: "Groups");
 
             migrationBuilder.DropTable(
                 name: "Users");

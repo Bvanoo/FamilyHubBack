@@ -3,84 +3,125 @@ using FamHubBack.Data.Entities;
 using FamHubBack.DTO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
-[ApiController]
-[Route("api/[controller]")]
-public class CalendarController : ControllerBase
+namespace FamHubBack.Controllers
 {
-    private readonly ApplicationDbContext _context;
-
-    public CalendarController(ApplicationDbContext context)
+    [ApiController]
+    [Route("api/[controller]")]
+    [Authorize]
+    public class CalendarController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly ApplicationDbContext _context;
 
-    [HttpPost]
-    public async Task<IActionResult> CreateEvent([FromBody] EventDto eventDto)
-    {
-        if (eventDto == null) return BadRequest();
-
-        var newEvent = new CalendarEvent
+        public CalendarController(ApplicationDbContext context)
         {
-            Title = eventDto.Title,
-            Type = eventDto.Type,
-            Color = eventDto.Color,
-            Start = eventDto.Start,
-            End = eventDto.End,
-            UserId = eventDto.UserId
-        };
+            _context = context;
+        }
 
-        _context.CalendarEvents.Add(newEvent);
-        await _context.SaveChangesAsync();
+        [HttpPost]
+        public async Task<IActionResult> CreateEvent([FromBody] EventDto eventDto)
+        {
+            if (eventDto == null) return BadRequest("Données vides");
+            var userExists = await _context.Users.AnyAsync(u => u.Id == eventDto.UserId);
+            if (!userExists)
+            {
+                return BadRequest($"L'utilisateur ID {eventDto.UserId} n'existe pas en base.");
+            }
 
-        return Ok(new { message = "Événement enregistré !", id = newEvent.Id });
-    }
+            var newEvent = new CalendarEvent
+            {
+                Title = eventDto.Title,
+                Description = eventDto.Description,
+                Type = eventDto.Type,
+                Color = eventDto.Color,
+                Start = eventDto.Start,
+                End = eventDto.End,
+                UserId = eventDto.UserId,
+                GroupId = eventDto.GroupId,
+                IsPrivateEvent = eventDto.IsPrivate,
+                MaskDetails = eventDto.MaskDetails
+            };
 
-    [HttpGet("user/{userId}")]
-    public async Task<ActionResult<IEnumerable<object>>> GetUserEvents(int userId)
-    {
-        var events = await _context.CalendarEvents
-            .Where(e => e.UserId == userId)
-            .Select(e => new {
-                id = e.Id,
-                title = e.Title,
-                start = e.Start,
-                end = e.End,
-                backgroundColor = e.Color,
-                borderColor = e.Color,
-                extendedProps = new
-                {
-                    type = e.Type
-                }
-            })
-            .ToListAsync();
+            try
+            {
+                _context.CalendarEvents.Add(newEvent);
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Événement enregistré !", id = newEvent.Id });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Erreur SQL", error = ex.Message, inner = ex.InnerException?.Message });
+            }
+        }
+        [HttpGet("unified")]
+        public async Task<IActionResult> GetUnifiedCalendar()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int currentUserId))
+            {
+                currentUserId = 1;
+            }
 
-        return Ok(events);
-    }
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateEvent(int id, [FromBody] EventDto eventDto)
-    {
-        var existingEvent = await _context.CalendarEvents.FindAsync(id);
-        if (existingEvent == null) return NotFound();
+            var myGroupsIds = await _context.GroupMembers
+                .Where(gm => gm.UserId == currentUserId && gm.Status == MemberStatus.Accepted)
+                .Select(gm => gm.GroupId)
+                .ToListAsync();
 
-        existingEvent.Title = eventDto.Title;
-        existingEvent.Start = eventDto.Start;
-        existingEvent.End = eventDto.End;
-        existingEvent.Color = eventDto.Color;
-        existingEvent.Type = eventDto.Type;
+            var events = await _context.CalendarEvents
+                .Include(e => e.Group)
+                .Where(e =>
+                    e.UserId == currentUserId ||
+                    (e.GroupId.HasValue && myGroupsIds.Contains(e.GroupId.Value))
+                )
+                .ToListAsync();
 
-        await _context.SaveChangesAsync();
-        return NoContent();
-    }
+            var eventDtos = events.Select(e => new EventDto
+            {
+                Id = e.Id,
+                Start = e.Start,
+                End = e.End,
+                Title = (e.UserId != currentUserId && e.MaskDetails) ? "Indisponible" : e.Title,
+                Description = (e.UserId != currentUserId && e.MaskDetails) ? "" : e.Description,
+                IsPrivate = e.IsPrivateEvent,
+                GroupId = e.GroupId,
+                UserId = e.UserId,
+                Color = e.GroupId.HasValue ? "#3788d8" : e.Color,
+                Type = e.Type
+            });
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteEvent(int id)
-    {
-        var eventItem = await _context.CalendarEvents.FindAsync(id);
-        if (eventItem == null) return NotFound();
+            return Ok(eventDtos);
+        }
 
-        _context.CalendarEvents.Remove(eventItem);
-        await _context.SaveChangesAsync();
-        return NoContent();
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateEvent(int id, [FromBody] EventDto eventDto)
+        {
+            var existingEvent = await _context.CalendarEvents.FindAsync(id);
+            if (existingEvent == null) return NotFound();
+
+            existingEvent.Title = eventDto.Title;
+            existingEvent.Description = eventDto.Description;
+            existingEvent.Start = eventDto.Start;
+            existingEvent.End = eventDto.End;
+            existingEvent.Color = eventDto.Color;
+            existingEvent.Type = eventDto.Type;
+            existingEvent.IsPrivateEvent = eventDto.IsPrivate;
+            existingEvent.MaskDetails = eventDto.MaskDetails;
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteEvent(int id)
+        {
+            var eventItem = await _context.CalendarEvents.FindAsync(id);
+            if (eventItem == null) return NotFound();
+
+            _context.CalendarEvents.Remove(eventItem);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
     }
 }

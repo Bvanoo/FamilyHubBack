@@ -5,25 +5,24 @@
 namespace FamHubBack.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class ajoutName : Migration
+    public partial class AddProfilPic : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "Name",
-                table: "Users",
+                name: "ProfilePictureUrl",
+                table: "AspNetUsers",
                 type: "nvarchar(max)",
-                nullable: false,
-                defaultValue: "");
+                nullable: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Name",
-                table: "Users");
+                name: "ProfilePictureUrl",
+                table: "AspNetUsers");
         }
     }
 }

@@ -1,32 +1,45 @@
-﻿using FamHubBack.Data;
+﻿using Microsoft.AspNetCore.SignalR;
+using FamHubBack.Data;
 using FamHubBack.Data.Entities;
-using Microsoft.AspNetCore.SignalR;
 
-public class ChatHub : Hub
+namespace FamHubBack.Services
 {
-    private readonly ApplicationDbContext db;
+    public class ChatHub : Hub
+    {
+        private readonly ApplicationDbContext _context;
 
-    public ChatHub(ApplicationDbContext context)
-    {
-        db = context;
-    }
-    public async Task SendMessage(int conversationId, int senderId, string content)
-    {
-        var msg = new Message
+        public ChatHub(ApplicationDbContext context)
         {
-            Content = content,
-            SenderId = senderId,
-            ConversationId = conversationId,
-            CreatedAt = DateTime.UtcNow
-        };
+            _context = context;
+        }
 
-        db.Messages.Add(msg);
-        await db.SaveChangesAsync();
-        await Clients.Group($"conv_{conversationId}")
-                     .SendAsync("ReceiveMessage", senderId, content, msg.CreatedAt);
-    }
-    public async Task JoinConversation(int conversationId)
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"conv_{conversationId}");
+        public async Task JoinGroupHub(string groupId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
+        }
+
+        public async Task LeaveGroupHub(string groupId)
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupId);
+        }
+
+        public async Task SendMessageToGroup(string groupId, string messageContent, string senderId, string senderName)
+        {
+            int gId = int.Parse(groupId);
+            int sId = int.Parse(senderId);
+
+            var msg = new Message
+            {
+                GroupId = gId,
+                SenderId = sId,
+                Content = messageContent,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Messages.Add(msg);
+            await _context.SaveChangesAsync();
+
+            await Clients.Group(groupId).SendAsync("ReceiveMessage", senderName, messageContent, msg.CreatedAt);
+        }
     }
 }
