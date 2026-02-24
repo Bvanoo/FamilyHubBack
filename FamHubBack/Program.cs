@@ -14,7 +14,7 @@ builder.Services.AddSignalR();
 
 builder.Services.AddCors(options => {
     options.AddPolicy("AllowAngular", policy => {
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins("https://blue-coast-08c75a703.4.azurestaticapps.net")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
