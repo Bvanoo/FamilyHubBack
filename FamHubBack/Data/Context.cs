@@ -20,6 +20,7 @@ namespace FamHubBack.Data
         public DbSet<ExpenseParticipant> ExpenseParticipants => Set<ExpenseParticipant>();
         public DbSet<CalendarEvent> CalendarEvents { get; set; }
         public DbSet<EventParticipant> EventParticipants { get; set; }
+        public DbSet<SecretSantaDraw> SecretSantaDraws { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -300,6 +300,60 @@ namespace FamHubBack.Controllers
 
             return Ok(new { message = "Membre retiré du groupe avec succès." });
         }
+        [HttpPost("{groupId}/secretsanta/draw")]
+        public async Task<IActionResult> DrawSecretSanta(int groupId)
+        {
+            var adminIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(adminIdStr, out int adminId)) return Unauthorized();
+
+            var isAdmin = await _context.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == adminId && m.Role == "Admin");
+            if (!isAdmin) return Forbid("Seul un admin peut lancer le tirage.");
+
+            var members = await _context.GroupMembers.Where(m => m.GroupId == groupId && m.IsAccepted).Select(m => m.UserId).ToListAsync();
+            if (members.Count < 3) return BadRequest("Il faut au moins 3 membres pour faire un Secret Santa.");
+
+            var oldDraws = _context.SecretSantaDraws.Where(d => d.GroupId == groupId);
+            _context.SecretSantaDraws.RemoveRange(oldDraws);
+
+            var rnd = new Random();
+            var shuffled = members.OrderBy(x => rnd.Next()).ToList();
+
+            for (int i = 0; i < shuffled.Count; i++)
+            {
+                var giver = shuffled[i];
+                var receiver = shuffled[(i + 1) % shuffled.Count];
+
+                _context.SecretSantaDraws.Add(new SecretSantaDraw
+                {
+                    GroupId = groupId,
+                    GiverId = giver,
+                    ReceiverId = receiver
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Le tirage a été effectué avec succès !" });
+        }
+
+        [HttpGet("{groupId}/secretsanta/my-target")]
+        public async Task<IActionResult> GetMySecretSantaTarget(int groupId)
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+
+            var targetDraw = await _context.SecretSantaDraws
+                .Include(d => d.Receiver)
+                .FirstOrDefaultAsync(d => d.GroupId == groupId && d.GiverId == userId);
+
+            if (targetDraw == null) return Ok(null);
+
+            return Ok(new
+            {
+                targetId = targetDraw.ReceiverId,
+                targetName = targetDraw.Receiver.Name,
+                targetPicture = targetDraw.Receiver.ProfilePictureUrl
+            });
+        }
     }
 
 
