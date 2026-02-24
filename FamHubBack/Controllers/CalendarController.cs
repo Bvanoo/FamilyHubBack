@@ -70,24 +70,63 @@ namespace FamHubBack.Controllers
                 .Select(gm => gm.GroupId)
                 .ToListAsync();
 
-            var sharedUsersIds = await _context.GroupMembers
-                .Where(gm => myGroupsIds.Contains(gm.GroupId) && gm.Status == MemberStatus.Accepted)
+            var events = await _context.CalendarEvents
+                .Include(e => e.User)
+                .Where(e =>
+                    (e.UserId == currentUserId && !e.GroupId.HasValue) ||
+                    (e.GroupId.HasValue && myGroupsIds.Contains(e.GroupId.Value))
+                )
+                .ToListAsync();
+
+            var eventDtos = events.Select(e => new EventDto
+            {
+                Id = e.Id,
+                Start = e.Start,
+                End = e.End,
+                Title = e.Title,
+                Description = e.Description,
+                Type = e.Type ?? "Disponible",
+                IsPrivate = e.IsPrivateEvent,
+                GroupId = e.GroupId,
+                UserId = e.UserId,
+                Color = e.GroupId.HasValue ? "#3b82f6" : e.Color,
+                UserName = e.User?.Name ?? "Utilisateur",
+                UserPicture = e.User?.ProfilePictureUrl
+            });
+
+            return Ok(eventDtos);
+        }
+
+        [HttpGet("group/{groupId}")]
+        public async Task<IActionResult> GetGroupEvents(int groupId)
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int currentUserId))
+            {
+                currentUserId = 1;
+            }
+
+            var isMember = await _context.GroupMembers
+                .AnyAsync(gm => gm.GroupId == groupId && gm.UserId == currentUserId && gm.Status == MemberStatus.Accepted);
+
+            if (!isMember) return Forbid();
+
+            var groupMemberIds = await _context.GroupMembers
+                .Where(gm => gm.GroupId == groupId && gm.Status == MemberStatus.Accepted)
                 .Select(gm => gm.UserId)
-                .Distinct()
                 .ToListAsync();
 
             var events = await _context.CalendarEvents
-        .Include(e => e.User)
-        .Where(e =>
-            e.UserId == currentUserId ||
-            (e.GroupId.HasValue && myGroupsIds.Contains(e.GroupId.Value)) ||
-            (!e.GroupId.HasValue && sharedUsersIds.Contains(e.UserId) && e.IsPrivateEvent)
-        )
-        .ToListAsync();
+                .Include(e => e.User)
+                .Where(e =>
+                    e.GroupId == groupId ||
+                    (!e.GroupId.HasValue && groupMemberIds.Contains(e.UserId))
+                )
+                .ToListAsync();
 
             var eventDtos = events.Select(e =>
             {
-                bool isHiddenFromMe = e.UserId != currentUserId && (e.IsPrivateEvent || e.MaskDetails);
+                bool isHiddenFromMe = e.UserId != currentUserId && !e.GroupId.HasValue && e.IsPrivateEvent;
 
                 return new EventDto
                 {
@@ -96,11 +135,11 @@ namespace FamHubBack.Controllers
                     End = e.End,
                     Title = isHiddenFromMe ? "Indisponible" : e.Title,
                     Description = isHiddenFromMe ? "" : e.Description,
-                    Type = isHiddenFromMe ? "Indisponible" : e.Type!,
+                    Type = isHiddenFromMe ? "Indisponible" : (e.Type ?? "Disponible"),
                     IsPrivate = e.IsPrivateEvent,
                     GroupId = e.GroupId,
                     UserId = e.UserId,
-                    Color = isHiddenFromMe ? "#9ca3af" : (e.GroupId.HasValue ? "#3b82f6" : e.Color)!,
+                    Color = isHiddenFromMe ? "#9ca3af" : (e.GroupId.HasValue ? "#3b82f6" : e.Color),
                     UserName = e.User?.Name ?? "Utilisateur",
                     UserPicture = e.User?.ProfilePictureUrl
                 };
@@ -137,29 +176,6 @@ namespace FamHubBack.Controllers
             _context.CalendarEvents.Remove(eventItem);
             await _context.SaveChangesAsync();
             return NoContent();
-        }
-        [HttpGet("group/{groupId}")]
-        public async Task<IActionResult> GetGroupEvents(int groupId)
-        {
-            var events = await _context.CalendarEvents
-                .Where(e => e.GroupId == groupId)
-                .ToListAsync();
-
-            var eventDtos = events.Select(e => new EventDto
-            {
-                Id = e.Id,
-                Start = e.Start,
-                End = e.End,
-                Title = e.Title,
-                Description = e.Description,
-                IsPrivate = e.IsPrivateEvent,
-                GroupId = e.GroupId,
-                UserId = e.UserId,
-                Color = e.Color,
-                Type = e.Type
-            });
-
-            return Ok(eventDtos);
         }
     }
 
