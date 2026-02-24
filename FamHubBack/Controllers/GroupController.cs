@@ -315,7 +315,6 @@ namespace FamHubBack.Controllers
 
             var currentYear = DateTime.UtcNow.Year;
 
-            // Supprimer l'ancien tirage de CETTE ANNÉE uniquement (garde l'historique des années précédentes)
             var currentYearDraws = _context.SecretSantaDraws.Where(d => d.GroupId == groupId && d.DrawDate.Year == currentYear);
             _context.SecretSantaDraws.RemoveRange(currentYearDraws);
 
@@ -403,6 +402,21 @@ namespace FamHubBack.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Le tirage de cette année a été réinitialisé." });
+        }
+        [HttpGet("public/random")]
+        public async Task<IActionResult> GetRandomPublicGroups()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+
+            var randomGroups = await _context.Groups
+                .Where(g => g.IsPublic && !g.IsDeleted && !g.Members.Any(m => m.UserId == userId))
+                .OrderBy(g => Guid.NewGuid())
+                .Take(10)
+                .Select(g => new { g.Id, g.Name, g.Description, g.IconUrl })
+                .ToListAsync();
+
+            return Ok(randomGroups);
         }
     }
 
