@@ -18,5 +18,7 @@ namespace FamHubBack.Data.Entities
         public User Receiver { get; set; }
 
         public DateTime DrawDate { get; set; } = DateTime.UtcNow;
+
+        public bool IsRevealed { get; set; } = false;
     }
 }

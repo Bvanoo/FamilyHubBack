@@ -300,6 +300,7 @@ namespace FamHubBack.Controllers
 
             return Ok(new { message = "Membre retiré du groupe avec succès." });
         }
+
         [HttpPost("{groupId}/secretsanta/draw")]
         public async Task<IActionResult> DrawSecretSanta(int groupId)
         {
@@ -312,27 +313,29 @@ namespace FamHubBack.Controllers
             var members = await _context.GroupMembers.Where(m => m.GroupId == groupId && m.IsAccepted).Select(m => m.UserId).ToListAsync();
             if (members.Count < 3) return BadRequest("Il faut au moins 3 membres pour faire un Secret Santa.");
 
-            var oldDraws = _context.SecretSantaDraws.Where(d => d.GroupId == groupId);
-            _context.SecretSantaDraws.RemoveRange(oldDraws);
+            var currentYear = DateTime.UtcNow.Year;
+
+            // Supprimer l'ancien tirage de CETTE ANNÉE uniquement (garde l'historique des années précédentes)
+            var currentYearDraws = _context.SecretSantaDraws.Where(d => d.GroupId == groupId && d.DrawDate.Year == currentYear);
+            _context.SecretSantaDraws.RemoveRange(currentYearDraws);
 
             var rnd = new Random();
             var shuffled = members.OrderBy(x => rnd.Next()).ToList();
 
             for (int i = 0; i < shuffled.Count; i++)
             {
-                var giver = shuffled[i];
-                var receiver = shuffled[(i + 1) % shuffled.Count];
-
                 _context.SecretSantaDraws.Add(new SecretSantaDraw
                 {
                     GroupId = groupId,
-                    GiverId = giver,
-                    ReceiverId = receiver
+                    GiverId = shuffled[i],
+                    ReceiverId = shuffled[(i + 1) % shuffled.Count],
+                    DrawDate = DateTime.UtcNow,
+                    IsRevealed = false
                 });
             }
 
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Le tirage a été effectué avec succès !" });
+            return Ok(new { message = "Le tirage a été effectué !" });
         }
 
         [HttpGet("{groupId}/secretsanta/my-target")]
@@ -341,11 +344,40 @@ namespace FamHubBack.Controllers
             var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
 
+            var currentYear = DateTime.UtcNow.Year;
             var targetDraw = await _context.SecretSantaDraws
                 .Include(d => d.Receiver)
-                .FirstOrDefaultAsync(d => d.GroupId == groupId && d.GiverId == userId);
+                .FirstOrDefaultAsync(d => d.GroupId == groupId && d.GiverId == userId && d.DrawDate.Year == currentYear);
 
-            if (targetDraw == null) return Ok(null);
+            if (targetDraw == null) return Ok(new { isDrawn = false });
+
+            if (!targetDraw.IsRevealed) return Ok(new { isDrawn = true, isRevealed = false });
+
+            return Ok(new
+            {
+                isDrawn = true,
+                isRevealed = true,
+                targetId = targetDraw.ReceiverId,
+                targetName = targetDraw.Receiver.Name,
+                targetPicture = targetDraw.Receiver.ProfilePictureUrl
+            });
+        }
+
+        [HttpPost("{groupId}/secretsanta/reveal")]
+        public async Task<IActionResult> RevealSecretSantaTarget(int groupId)
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(userIdStr, out int userId)) return Unauthorized();
+
+            var currentYear = DateTime.UtcNow.Year;
+            var targetDraw = await _context.SecretSantaDraws
+                .Include(d => d.Receiver)
+                .FirstOrDefaultAsync(d => d.GroupId == groupId && d.GiverId == userId && d.DrawDate.Year == currentYear);
+
+            if (targetDraw == null) return NotFound("Aucun tirage trouvé pour cette année.");
+
+            targetDraw.IsRevealed = true;
+            await _context.SaveChangesAsync();
 
             return Ok(new
             {
@@ -353,6 +385,24 @@ namespace FamHubBack.Controllers
                 targetName = targetDraw.Receiver.Name,
                 targetPicture = targetDraw.Receiver.ProfilePictureUrl
             });
+        }
+
+        [HttpDelete("{groupId}/secretsanta/reset")]
+        public async Task<IActionResult> ResetSecretSanta(int groupId)
+        {
+            var adminIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(adminIdStr, out int adminId)) return Unauthorized();
+
+            var isAdmin = await _context.GroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == adminId && m.Role == "Admin");
+            if (!isAdmin) return Forbid("Seul un admin peut réinitialiser le tirage.");
+
+            var currentYear = DateTime.UtcNow.Year;
+            var currentYearDraws = _context.SecretSantaDraws.Where(d => d.GroupId == groupId && d.DrawDate.Year == currentYear);
+
+            _context.SecretSantaDraws.RemoveRange(currentYearDraws);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Le tirage de cette année a été réinitialisé." });
         }
     }
 
