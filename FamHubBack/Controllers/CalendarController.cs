@@ -36,8 +36,8 @@ namespace FamHubBack.Controllers
                 Description = eventDto.Description,
                 Type = eventDto.Type,
                 Color = eventDto.Color,
-                Start = eventDto.Start,
-                End = eventDto.End,
+                Start = DateTime.SpecifyKind(eventDto.Start, DateTimeKind.Utc),
+                End = DateTime.SpecifyKind(eventDto.End, DateTimeKind.Utc),
                 UserId = eventDto.UserId,
                 GroupId = eventDto.GroupId,
                 IsPrivateEvent = eventDto.IsPrivate,
@@ -81,8 +81,8 @@ namespace FamHubBack.Controllers
             var eventDtos = events.Select(e => new EventDto
             {
                 Id = e.Id,
-                Start = e.Start,
-                End = e.End,
+                Start = DateTime.SpecifyKind(e.Start, DateTimeKind.Utc),
+                End = DateTime.SpecifyKind(e.End, DateTimeKind.Utc),
                 Title = e.Title,
                 Description = e.Description,
                 Type = e.Type ?? "Disponible",
@@ -131,8 +131,8 @@ namespace FamHubBack.Controllers
                 return new EventDto
                 {
                     Id = e.Id,
-                    Start = e.Start,
-                    End = e.End,
+                    Start = DateTime.SpecifyKind(e.Start, DateTimeKind.Utc),
+                    End = DateTime.SpecifyKind(e.End, DateTimeKind.Utc),
                     Title = isHiddenFromMe ? "Indisponible" : e.Title,
                     Description = isHiddenFromMe ? "" : e.Description,
                     Type = isHiddenFromMe ? "Indisponible" : (e.Type ?? "Disponible"),
@@ -156,8 +156,8 @@ namespace FamHubBack.Controllers
 
             existingEvent.Title = eventDto.Title;
             existingEvent.Description = eventDto.Description;
-            existingEvent.Start = eventDto.Start;
-            existingEvent.End = eventDto.End;
+            existingEvent.Start = DateTime.SpecifyKind(eventDto.Start, DateTimeKind.Utc);
+            existingEvent.End = DateTime.SpecifyKind(eventDto.End, DateTimeKind.Utc);
             existingEvent.Color = eventDto.Color;
             existingEvent.Type = eventDto.Type;
             existingEvent.IsPrivateEvent = eventDto.IsPrivate;
@@ -178,5 +178,4 @@ namespace FamHubBack.Controllers
             return NoContent();
         }
     }
-
 }
