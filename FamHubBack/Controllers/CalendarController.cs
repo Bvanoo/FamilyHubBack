@@ -236,14 +236,24 @@ namespace FamHubBack.Controllers
         public async Task<IActionResult> DeleteTask(int taskId)
         {
             var task = await _context.EventTasks.FindAsync(taskId);
-
-            if (task == null)
-                return NotFound("Tâche introuvable.");
+            if (task == null) return NotFound("Tâche introuvable.");
 
             _context.EventTasks.Remove(task);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Tâche supprimée avec succès." });
+            return NoContent();
+        }
+
+        [HttpPut("tasks/{taskId}/toggle")]
+        public async Task<IActionResult> ToggleTaskStatus(int taskId, [FromBody] bool isCompleted)
+        {
+            var task = await _context.EventTasks.FindAsync(taskId);
+            if (task == null) return NotFound("Tâche introuvable.");
+
+            task.IsCompleted = isCompleted;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { isCompleted = task.IsCompleted });
         }
     }
 }
