@@ -3,10 +3,10 @@
     public class EventTask
     {
         public int Id { get; set; }
-        public string Description { get; set; }
-        public bool IsDone { get; set; }
-        public int? AssignedUserId { get; set; }
-        public int CalendarEventId { get; set; }
-        public CalendarEvent CalendarEvent { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public bool IsCompleted { get; set; } = false;
+        public int EventId { get; set; }
+        public CalendarEvent Event { get; set; }
+        public ICollection<User> AssignedUsers { get; set; } = new List<User>();
     }
 }

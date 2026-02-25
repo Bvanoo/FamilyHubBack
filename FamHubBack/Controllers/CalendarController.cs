@@ -177,5 +177,42 @@ namespace FamHubBack.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+
+        [HttpPost("{eventId}/tasks")]
+        public async Task<IActionResult> AddTaskToEvent(int eventId, [FromBody] CreateTaskDto dto)
+        {
+            var calendarEvent = await _context.CalendarEvents
+                .Include(e => e.Group)
+                .FirstOrDefaultAsync(e => e.Id == eventId);
+
+            if (calendarEvent == null)
+                return NotFound("Événement introuvable.");
+
+            var task = new EventTask
+            {
+                Title = dto.Title,
+                EventId = eventId,
+                IsCompleted = false
+            };
+
+            if (dto.AssignedUserIds.Any())
+            {
+                if (calendarEvent.GroupId == null)
+                {
+                    return BadRequest("L'assignation de tâches n'est possible que pour les événements de groupe.");
+                }
+
+                var usersToAssign = await _context.Users
+                    .Where(u => dto.AssignedUserIds.Contains(u.Id.ToString()))
+                    .ToListAsync();
+
+                task.AssignedUsers = usersToAssign;
+            }
+
+            _context.EventTasks.Add(task);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Tâche ajoutée avec succès", taskId = task.Id });
+        }
     }
 }

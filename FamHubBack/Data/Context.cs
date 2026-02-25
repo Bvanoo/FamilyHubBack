@@ -21,6 +21,7 @@ namespace FamHubBack.Data
         public DbSet<CalendarEvent> CalendarEvents { get; set; }
         public DbSet<EventParticipant> EventParticipants { get; set; }
         public DbSet<SecretSantaDraw> SecretSantaDraws { get; set; }
+        public DbSet<EventTask> EventTasks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
