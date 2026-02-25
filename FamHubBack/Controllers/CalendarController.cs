@@ -72,6 +72,8 @@ namespace FamHubBack.Controllers
 
             var events = await _context.CalendarEvents
                 .Include(e => e.User)
+                .Include(e => e.Tasks)
+                    .ThenInclude(t => t.AssignedUsers)
                 .Where(e =>
                     (e.UserId == currentUserId && !e.GroupId.HasValue) ||
                     (e.GroupId.HasValue && myGroupsIds.Contains(e.GroupId.Value))
@@ -91,7 +93,14 @@ namespace FamHubBack.Controllers
                 UserId = e.UserId,
                 Color = e.GroupId.HasValue ? "#3b82f6" : e.Color,
                 UserName = e.User?.Name ?? "Utilisateur",
-                UserPicture = e.User?.ProfilePictureUrl
+                UserPicture = e.User?.ProfilePictureUrl,
+                Tasks = e.Tasks?.Select(t => new EventTaskDto
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    IsCompleted = t.IsCompleted,
+                    AssignedUserNames = t.AssignedUsers?.Select(u => u.Name).ToList() ?? new List<string>()
+                }).ToList() ?? new List<EventTaskDto>()
             });
 
             return Ok(eventDtos);
@@ -118,6 +127,8 @@ namespace FamHubBack.Controllers
 
             var events = await _context.CalendarEvents
                 .Include(e => e.User)
+                .Include(e => e.Tasks)
+                    .ThenInclude(t => t.AssignedUsers)
                 .Where(e =>
                     e.GroupId == groupId ||
                     (!e.GroupId.HasValue && groupMemberIds.Contains(e.UserId))
@@ -141,7 +152,14 @@ namespace FamHubBack.Controllers
                     UserId = e.UserId,
                     Color = isHiddenFromMe ? "#9ca3af" : (e.GroupId.HasValue ? "#3b82f6" : e.Color),
                     UserName = e.User?.Name ?? "Utilisateur",
-                    UserPicture = e.User?.ProfilePictureUrl
+                    UserPicture = e.User?.ProfilePictureUrl,
+                    Tasks = (isHiddenFromMe || e.Tasks == null) ? new List<EventTaskDto>() : e.Tasks.Select(t => new EventTaskDto
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        IsCompleted = t.IsCompleted,
+                        AssignedUserNames = t.AssignedUsers?.Select(u => u.Name).ToList() ?? new List<string>()
+                    }).ToList()
                 };
             });
 
@@ -182,7 +200,6 @@ namespace FamHubBack.Controllers
         public async Task<IActionResult> AddTaskToEvent(int eventId, [FromBody] CreateTaskDto dto)
         {
             var calendarEvent = await _context.CalendarEvents
-                .Include(e => e.Group)
                 .FirstOrDefaultAsync(e => e.Id == eventId);
 
             if (calendarEvent == null)
@@ -195,7 +212,7 @@ namespace FamHubBack.Controllers
                 IsCompleted = false
             };
 
-            if (dto.AssignedUserIds.Any())
+            if (dto.AssignedUserIds != null && dto.AssignedUserIds.Any())
             {
                 if (calendarEvent.GroupId == null)
                 {

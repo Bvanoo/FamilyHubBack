@@ -15,5 +15,6 @@
         public int? GroupId { get; set; }
         public string? UserName { get; set; }
         public string? UserPicture { get; set; }
+        public List<EventTaskDto> Tasks { get; set; } = new List<EventTaskDto>();
     }
 }
