@@ -235,8 +235,13 @@ namespace FamHubBack.Controllers
         [HttpDelete("tasks/{taskId}")]
         public async Task<IActionResult> DeleteTask(int taskId)
         {
-            var task = await _context.EventTasks.FindAsync(taskId);
+            var task = await _context.EventTasks
+                .Include(t => t.AssignedUsers)
+                .FirstOrDefaultAsync(t => t.Id == taskId);
+
             if (task == null) return NotFound("Tâche introuvable.");
+
+            task.AssignedUsers.Clear();
 
             _context.EventTasks.Remove(task);
             await _context.SaveChangesAsync();
